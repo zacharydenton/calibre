@@ -27,6 +27,7 @@ translations/
 *.mdproj
 *.pidb
 *.sln
+*.swp
 *.userprefs
 .project
 .pydevproject

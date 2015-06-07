@@ -40,7 +40,6 @@ class ContentServer(object):
 
     def add_routes(self, connect):
         connect('root', '/', self.index)
-        connect('old', '/old', self.old)
         connect('get', '/get/{what}/{id}', self.get,
                 conditions=dict(method=["GET", "HEAD"]),
                 android_workaround=True)
@@ -157,10 +156,6 @@ class ContentServer(object):
             return self.mobile()
 
         return self.browse_catalog()
-
-    def old(self, **kwargs):
-        return self.static('index.html').replace('{prefix}',
-                self.opts.url_prefix)
 
     # Actually get content from the database {{{
     def get_cover(self, id, thumbnail=False, thumb_width=60, thumb_height=80):

@@ -23,96 +23,15 @@ from calibre.library.server import custom_fields_to_display
 from calibre.library.field_metadata import category_icon_map
 from calibre.library.server.utils import quote, unquote
 from calibre.db.categories import Tag
+from calibre.ebooks.metadata.book.json_codec import JsonCodec
 from calibre.ebooks.metadata.sources.identify import urls_from_identifiers
 
 def xml(*args, **kwargs):
     ans = prepare_string_for_xml(*args, **kwargs)
     return ans.replace('&apos;', '&#39;')
 
-def render_book_list(ids, prefix, suffix=''):  # {{{
-    pages = []
-    num = len(ids)
-    pos = 0
-    delta = 25
-    while ids:
-        page = list(ids[:delta])
-        pages.append((page, pos))
-        ids = ids[delta:]
-        pos += len(page)
-    page_template = u'''\
-            <div class="page" id="page{0}">
-                <div class="load_data" title="{1}">
-                    <span class="url" title="{prefix}/browse/booklist_page"></span>
-                    <span class="start" title="{start}"></span>
-                    <span class="end" title="{end}"></span>
-                </div>
-                <div class="loading"><img src="{prefix}/static/loading.gif" /> {2}</div>
-                <div class="loaded"></div>
-            </div>
-            '''
-    pagelist_template = u'''\
-        <div class="pagelist">
-            <ul>
-                {pages}
-            </ul>
-        </div>
-    '''
-    rpages, lpages = [], []
-    for i, x in enumerate(pages):
-        pg, pos = x
-        ld = xml(json.dumps(pg), True)
-        start, end = pos+1, pos+len(pg)
-        rpages.append(page_template.format(i, ld,
-            xml(_('Loading, please wait')) + '&hellip;',
-            start=start, end=end, prefix=prefix))
-        lpages.append(' '*20 + (u'<li><a href="#" title="Books {start} to {end}"'
-            ' onclick="gp_internal(\'{id}\'); return false;"> '
-            '{start}&nbsp;to&nbsp;{end}</a></li>').format(start=start, end=end,
-                id='page%d'%i))
-    rpages = u'\n\n'.join(rpages)
-    lpages = u'\n'.join(lpages)
-    pagelist = pagelist_template.format(pages=lpages)
-
-    templ = u'''\
-            <h3>{0} {suffix}</h3>
-            <div id="booklist">
-                <div id="pagelist" title="{goto}">{pagelist}</div>
-                <div class="listnav topnav">
-                {navbar}
-                </div>
-                {pages}
-                <div class="listnav bottomnav">
-                {navbar}
-                </div>
-            </div>
-            '''
-    gp_start = gp_end = ''
-    if len(pages) > 1:
-        gp_start = '<a href="#" onclick="goto_page(); return false;" title="%s">' % \
-                (_('Go to') + '&hellip;')
-        gp_end = '</a>'
-    navbar = u'''\
-        <div class="navleft">
-            <a href="#" onclick="first_page(); return false;">{first}</a>
-            <a href="#" onclick="previous_page(); return false;">{previous}</a>
-        </div>
-        <div class="navmiddle">
-            {gp_start}
-                <span class="start">0</span> to <span class="end">0</span>
-            {gp_end}of {num}
-        </div>
-        <div class="navright">
-            <a href="#" onclick="next_page(); return false;">{next}</a>
-            <a href="#" onclick="last_page(); return false;">{last}</a>
-        </div>
-    '''.format(first=_('First'), last=_('Last'), previous=_('Previous'),
-            next=_('Next'), num=num, gp_start=gp_start, gp_end=gp_end)
-
-    return templ.format(_('Browsing %d books')%num, suffix=suffix,
-            pages=rpages, navbar=navbar, pagelist=pagelist,
-            goto=xml(_('Go to'), True) + '&hellip;')
-
-# }}}
+def render_book_list(ids, prefix, suffix=''):
+    return "<script>window.book_ids = {}</script>".format(json.dumps(ids))
 
 def utf8(x):  # {{{
     if isinstance(x, unicode):
@@ -215,6 +134,9 @@ class Endpoint(object):  # {{{
 
 class BrowseServer(object):
 
+    def __init__(self):
+        self.json_codec = JsonCodec()
+
     def add_routes(self, connect):
         base_href = '/browse'
         connect('browse', base_href, self.browse_catalog)
@@ -241,6 +163,7 @@ class BrowseServer(object):
                 self.browse_icon)
 
         self.icon_map = JSONConfig('gui').get('tags_browser_category_icons', {})
+        self.nav = self.browse_nav()
 
     # Templates {{{
     def browse_template(self, sort, category=True, initial_search=''):
@@ -280,6 +203,7 @@ class BrowseServer(object):
         ans = ans.replace('{library}', _('library'))
         ans = ans.replace('{home}', _('home'))
         ans = ans.replace('{Search}', _('Search'))
+        ans = ans.replace('{nav}', self.nav)
         opts = ['<option %svalue="%s">%s</option>' % (
             'selected="selected" ' if k==sort else '',
             xml(k), xml(nl), ) for k, nl in
@@ -343,17 +267,17 @@ class BrowseServer(object):
             self.__browse_icon_cache__[name] = img.export('png')
         return self.__browse_icon_cache__[name]
 
-    def browse_toplevel(self):
+    def browse_nav(self):
         categories = self.categories_cache()
         category_meta = self.db.field_metadata
         cats = [
-                (_('Newest'), 'newest', 'forward.png'),
-                (_('All books'), 'allbooks', 'book.png'),
-                (_('Random book'), 'randombook', 'random.png'),
+                (_('Newest'), 'newest', 'whatshot'),
+                (_('All books'), 'allbooks', 'library_books'),
+                (_('Random book'), 'randombook', 'shuffle'),
                 ]
         virt_libs = self.db.prefs.get('virtual_libraries', {})
         if virt_libs:
-            cats.append((_('Virtual Libs.'), 'virt_libs', 'lt.png'))
+            cats.append((_('Virtual Libs.'), 'virt_libs', 'graphic_eq'))
 
         def getter(x):
             try:
@@ -374,11 +298,12 @@ class BrowseServer(object):
             if self.db.field_metadata.is_ignorable_field(category) and \
                         category not in displayed_custom_fields:
                 continue
+
             # get the icon files
             main_cat = (category.partition('.')[0]) if hasattr(category,
                                                     'partition') else category
             if main_cat in self.icon_map:
-                icon = '_'+quote(self.icon_map[main_cat])
+                icon = self.icon_map[main_cat]
             elif category in category_icon_map:
                 icon = category_icon_map[category]
             elif meta['is_custom']:
@@ -386,7 +311,7 @@ class BrowseServer(object):
             elif meta['kind'] == 'user':
                 icon = category_icon_map['user:']
             else:
-                icon = 'blank.png'
+                icon = 'check_box_outline_blank'
 
             if meta['kind'] == 'user':
                 dot = category.find('.')
@@ -401,18 +326,35 @@ class BrowseServer(object):
             else:
                 cats.append((meta['name'], category, icon))
 
-        cats = [(u'<li><a title="{2} {0}" href="{3}/browse/category/{1}">&nbsp;</a>'
-                 u'<img src="{3}{src}" alt="{0}" />'
-                 u'<span class="label">{0}</span>'
+        cats = [(u'<li><a title="{2} {0}" href="{3}/browse/category/{1}">'
+                 u'<i class="material-icons">{icon}</i>'
+                 u'<span>{0}</span></a>'
                  u'</li>')
-                .format(xml(x, True), xml(quote(y)), xml(_('Browse books by')),
-                    self.opts.url_prefix, src='/browse/icon/'+z)
-                for x, y, z in cats]
+                .format(xml(name, True), xml(quote(cat)), xml(_('Browse books by')),
+                    self.opts.url_prefix, icon=icon)
+                for name, cat, icon in cats]
 
-        main = u'<div class="toplevel"><h3>{0}</h3><ul>{1}</ul></div>'\
-                .format(_('Choose a category to browse by:'), u'\n\n'.join(cats))
-        return self.browse_template('name').format(title='',
-                    script='toplevel();', main=main)
+        return '\n'.join(cats)
+
+    def books_to_json(self, *books):
+        result = []
+        for book in books:
+            book_json = self.json_codec.encode_book_metadata(book)
+            book_json['formats'] = [fmt.lower() for fmt in book.formats]
+            book_json['format_metadata'] = {k.lower(): dict(v) for k, v in book.format_metadata.iteritems()}
+            for v in book_json['format_metadata'].itervalues():
+                v.pop('mtime', None)
+            result.append(book_json)
+        return json.dumps(result, skipkeys=True)
+
+    def browse_json_books(self, ids, prefix, suffix=''):
+        books = [self.db.get_metadata(id, True) for id in ids]
+        books_json = self.books_to_json(*books)
+        return "<script>window.calibre_books = {}</script>".format(books_json)
+
+    def browse_toplevel(self):
+        main = u'<div class="toplevel"></div>'
+        return self.browse_template('name').format(title='', main=main)
 
     def browse_sort_categories(self, items, sort):
         if sort not in ('rating', 'name', 'popularity'):
@@ -481,14 +423,12 @@ class BrowseServer(object):
         if cats:
             cats = (u'\n<div class="toplevel">\n'
                      '{0}</div>').format(cats)
-            script = 'toplevel();'
-        else:
-            script = 'true'
 
         # Now do the category items
         vls = self.db.prefs.get('virtual_libraries', {})
         categories['virt_libs'] = sorted([Tag(k) for k, v in vls.iteritems()], key=lambda x:sort_key(x.name))
         items = categories[category]
+        print(items)
 
         sort = self.browse_sort_categories(items, sort)
 
@@ -503,7 +443,6 @@ class BrowseServer(object):
                 raise cherrypy.InternalRedirect(unquote(href.group(1)))
 
         if len(items) <= self.opts.max_opds_ungrouped_items:
-            script = 'false'
             items = get_category_items(category, items,
                     datatype, self.opts.url_prefix)
         else:
@@ -534,11 +473,6 @@ class BrowseServer(object):
             items = '\n\n'.join(items)
             items = u'<div id="groups">\n{0}</div>'.format(items)
 
-        if cats:
-            script = 'toplevel();category(%s);'%script
-        else:
-            script = 'category(%s);'%script
-
         main = u'''
             <div class="category">
                 <h3>{0}</h3>
@@ -551,7 +485,7 @@ class BrowseServer(object):
                 xml(_('Up'), True), self.opts.url_prefix)
 
         return self.browse_template(sort).format(title=category_name,
-                script=script, main=main)
+                main=main)
 
     @Endpoint(mimetype='application/json; charset=utf-8')
     def browse_category_group(self, category=None, group=None, sort=None):
@@ -688,7 +622,7 @@ class BrowseServer(object):
                             ' This virtual library is applied globally and combined with'
                             ' the current virtual library.')
                     return self.browse_template('name').format(title='',
-                        script='', main='<p>%s</p>'%msg)
+                        main='<p>%s</p>'%msg)
             else:
                 if fm.get(category, {'datatype':None})['datatype'] == 'composite':
                     cid = cid.decode('utf-8')
@@ -705,12 +639,12 @@ class BrowseServer(object):
             list_sort = category
         sort = self.browse_sort_book_list(items, list_sort)
         ids = [x[0] for x in items]
-        html = render_book_list(ids, self.opts.url_prefix,
+        html = self.browse_json_books(ids, self.opts.url_prefix,
                 suffix=_('in') + ' ' + category_name)
 
         return self.browse_template(sort, category=False).format(
                 title=_('Books in') + " " +category_name,
-                script='booklist(%s);'%hide_sort, main=html)
+                main=html)
 
     def browse_get_book_args(self, mi, id_, add_category_links=False):
         fmts = self.db.formats(id_, index_is_id=True)
@@ -942,13 +876,12 @@ class BrowseServer(object):
     @Endpoint()
     def browse_random(self, *args, **kwargs):
         import random
-        try:
-            book_id = random.choice(self.search_for_books(''))
-        except IndexError:
-            raise cherrypy.HTTPError(404, 'This library has no books')
-        ans = self.browse_render_details(book_id, add_random_button=True, add_title=True)
-        return self.browse_template('').format(
-                title=prepare_string_for_xml(self.db.title(book_id, index_is_id=True)), script='book();', main=ans)
+        all_ids = list(self.search_cache(''))
+        random.shuffle(all_ids)
+        html = self.browse_json_books(all_ids, self.opts.url_prefix)
+        return self.browse_template(None).format(
+                title=_('Books in'),
+                main=html)
 
     @Endpoint()
     def browse_book(self, id=None, category_sort=None):
@@ -956,7 +889,6 @@ class BrowseServer(object):
             id_ = int(id)
         except:
             raise cherrypy.HTTPError(404, 'invalid id: %r'%id)
-
         ans = self.browse_render_details(id_, add_title=True)
         return self.browse_template('').format(
                 title=prepare_string_for_xml(self.db.title(id_, index_is_id=True)), script='book();', main=ans)
@@ -964,7 +896,7 @@ class BrowseServer(object):
     # }}}
 
     # Search {{{
-    @Endpoint(sort_type='list')
+    @Endpoint()
     def browse_search(self, query='', list_sort=None):
         if isbytestring(query):
             query = query.decode('UTF-8')
@@ -976,7 +908,7 @@ class BrowseServer(object):
                 suffix=_('in search')+': '+xml(query))
         return self.browse_template(sort, category=False, initial_search=query).format(
                 title=_('Matching books'),
-                script='search_result();', main=html)
+                main=html)
 
     # }}}
 

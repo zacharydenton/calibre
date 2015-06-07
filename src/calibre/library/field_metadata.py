@@ -25,19 +25,19 @@ class TagsIcons(dict):
             self[a] = icon_dict[a]
 
 category_icon_map = {
-                    'authors'    : 'user_profile.png',
-                    'series'     : 'series.png',
-                    'formats'    : 'book.png',
-                    'publisher'  : 'publisher.png',
-                    'rating'     : 'rating.png',
-                    'news'       : 'news.png',
-                    'tags'       : 'tags.png',
-                    'custom:'    : 'column.png',
-                    'user:'      : 'tb_folder.png',
-                    'search'     : 'search.png',
-                    'identifiers': 'identifiers.png',
-                    'gst'        : 'catalog.png',
-                    'languages'  : 'languages.png',
+                    'authors'    : 'person',
+                    'series'     : 'view_carousel',
+                    'formats'    : 'style',
+                    'publisher'  : 'business',
+                    'rating'     : 'star_rating',
+                    'news'       : 'map',
+                    'tags'       : 'local_offer',
+                    'custom:'    : 'folder',
+                    'user:'      : 'account_circle',
+                    'search'     : 'search',
+                    'identifiers': 'info',
+                    'gst'        : 'description',
+                    'languages'  : 'language',
             }
 
 # Builtin metadata {{{

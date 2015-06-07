@@ -1,103 +1,101 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!doctype html>
 <html>
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>..:: calibre {library} ::.. {title}</title>
-    <meta http-equiv="X-UA-Compatible" content="IE=100" />
-    <meta name="robots" content="noindex" />
-    <link rel="icon" type="image/x-icon" href="http://calibre-ebook.com/favicon.ico" />
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>calibre {library}</title>
 
-    <link rel="stylesheet" type="text/css" href="{prefix}/static/browse/browse.css" />
-    <link type="text/css" href="{prefix}/static/jquery_ui/css/humanity-custom/jquery-ui-1.8.5.custom.css" rel="stylesheet" />
-    <link rel="stylesheet" type="text/css" href="{prefix}/static/jquery.multiselect.css" />
-    <link rel="apple-touch-icon" href="{prefix}/static/calibre.png" />
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="Calibre">
+<meta name="theme-color" content="#3372DF">
+<link rel="icon" type="image/x-icon" href="http://calibre-ebook.com/favicon.ico">
 
-    <script type="text/javascript" src="{prefix}/static/jquery.js"></script>
-    <script type="text/javascript" src="{prefix}/static/jquery.corner.js"></script>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Calibre">
+<link rel="apple-touch-icon" href="{prefix}/static/calibre.png">
 
-    <script type="text/javascript"
-        src="{prefix}/static/jquery_ui/js/jquery-ui-1.8.5.custom.min.js"></script>
-    <script type="text/javascript"
-        src="{prefix}/static/jquery.multiselect.min.js"></script>
-
-    <script type="text/javascript" src="{prefix}/static/stacktrace.js"></script>
-    <script type="text/javascript" src="{prefix}/static/browse/browse.js"></script>
-
-    <script type="text/javascript">
-        var sort_cookie_name = "{sort_cookie_name}";
-        var sort_select_label = "{sort_select_label}";
-        var url_prefix = "{prefix}";
-        $(document).ready(function() {{
-                init();
-                {script}
-        }});
-    </script>
+<link href="http://fonts.googleapis.com/css?family=Lato:400,700" rel="stylesheet" type="text/css">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link rel="stylesheet" type="text/css" href="{prefix}/static/normalize.css">
+<link rel="stylesheet" type="text/css" href="{prefix}/static/browse/browse.css">
 </head>
 <body>
-    <div id="container">
-
-        <!-- Header -->
-        <div id="header">
-            <div class="area">
-              <div class="bubble">
-                  <p><a href="{prefix}/browse" title="Return to top level"
-                      >&rarr;&nbsp;{home}&nbsp;&larr;</a></p>
-              </div>
-            </div>
-            <div id="nav-container">&nbsp;
-            <ul id="primary-nav">
-                <li><a id="nav-mobile" href="{prefix}/mobile" title="A version of this website suited for mobile browsers">Mobile</a></li>
-
-                <li><a id="nav-demo" href="{prefix}/old" title="The old version of this website">Old</a></li>
-                <li><a id="nav-download" href="{prefix}/opds" title="An OPDS feed based version of this website, used in special purpose applications">Feed</a></li>
-            </ul>
-            </div>
-
-            <form id="donate" action="https://www.paypal.com/cgi-bin/webscr"
-                method="post" title="Donate to support the development of calibre">
-                <div>
-                    <input type="hidden" name="cmd" value="_s-xclick"></input>
-                    <input type="hidden" name="hosted_button_id" value="MZQCP8EESW4H4"></input>
-                    <input type="image"
-                    src="{prefix}/static/button-donate.png"
-                        name="submit"></input>
-                    <img alt="" src="https://www.paypal.com/en_US/i/scr/pixel.gif"
-                        width="1" height="1"></img>
-                </div>
-            </form>
-            <div id="calibre-home-link" title="Go to the calibre website"></div>
-        </div>
-        <!-- End header -->
-
-        <div id="content">
-            <div class="sort_select">
-                <label>{sort_select_label}</label>
-                <select id="sort_combobox">
-                    {sort_select_options}
-                </select>
-            </div>
-            <div id="search_box">
-                <form name="search_form"  action="{prefix}/browse/search" method="get" accept-charset="UTF-8">
-                    <input value="{initial_search}" type="text" title="Search" name="query"
-                                        class="search_input" />&nbsp;
-                    <input type="submit" value="{Search}" title="{Search}" alt="{Search}" />
+<div class="container">
+    <div class="primary">
+        <header class="app-bar promote-layer">
+            <div class="app-bar-container">
+                <button class="menu"><i class="material-icons" alt="Menu">menu</i></button>
+                <form action="/browse/search">
+                    <input name="query" type="search">
                 </form>
+                <section class="app-bar-actions">
+                    <button class="search"><i class="material-icons" alt="{Search}">search</i></button>
+                </section>
             </div>
-            <div>&nbsp;</div>
-            <div>&nbsp;</div>
-            <div>&nbsp;</div>
+        </header>
 
-            <div id="main">
-                {main}
-            </div>
-            <div id="footer">
-                [{library_path}]
-            </div>
+        <nav class="navdrawer-container promote-layer">
+            <h2><a href="/browse">Calibre</a></h2>
+
+            <ul>
+                {nav}
+            </ul>
+        </nav>
+
+        <main>
+            <div class="book-list grid-list"></div>
+            {main}
+        </main>
+    </div>
+    <div class="secondary">
+        <div class="book-detail"></div>
+    </div>
+</div>
+
+<script type="text/template" id="book-template">
+    <div class="content">
+        <h3><%= title %></h3>
+        <p><%= authors[0] %></p>
+    </div>
+</script>
+
+<script type="text/template" id="book-detail-template">
+    <div class="image" style="background-image: url(/get/cover/<%- application_id %>)"></div>
+    <div class="header">
+        <h2><%= title %></h2>
+        <p><%= authors.join(", ") %></p>
+        <a class="read" href="/get/<%- formats[0] %>/<%- application_id %>">
+            <i class="material-icons">chrome_reader_mode</i>
+        </a>
+    </div>
+    <div class="content">
+        <div class="download">
+            <i class="material-icons">file_download</i>
+            <ul>
+            <% _.each(_.pairs(format_metadata), function(pair) {{ %>
+            <li>
+                <a href="/get/<%- pair[0] %>/<%- application_id %>">
+                    <h4><%- pair[0] %></h4>
+                    <span><%- (pair[1].size / 1024).toFixed(1) %> kB</span>
+                </a>
+            </li>
+            <% }}); %>
+            </ul>
+        </div>
+        <hr>
+        <div class="summary">
+            <%= comments %>
         </div>
     </div>
-    <div id="book_details_dialog"></div>
-    <div id="goto_page_dialog"></div>
+</script>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="{prefix}/static/jquery-1.11.3.min.js"><\/script>')</script>
+<script src="{prefix}/static/underscore-1.8.3.min.js"></script>
+<script src="{prefix}/static/backbone-1.2.0.min.js"></script>
+<script src="{prefix}/static/main.js"></script>
 </body>
 </html>
